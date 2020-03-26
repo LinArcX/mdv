@@ -14,6 +14,17 @@
 #define DEF_OUNIT 64
 #define DEF_MAX_NESTING 16
 
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
+///* Standard C prototypes */
+//const char style[];
+//const size_t style_len;
+//
+//#ifdef __cplusplus
+//}
+//#endif
+
 struct opts {
     size_t iunit;
     size_t ounit;
@@ -72,14 +83,14 @@ int main(int argc, char* argv[])
     hoedown_document_free(document);
     hoedown_html_renderer_free(renderer);
 
-    FILE* file_pointer;
-    char c;
-    file_pointer = fopen("./assets/style.css", "r"); //reset the pointer
-    struct abuf buf_css = ABUF_INIT;
-    while ((c = getc(file_pointer)) != EOF) {
-        abAppend(&buf_css, &c);
-    }
-    fclose(file_pointer);
+    //FILE* file_pointer;
+    //char c;
+    //file_pointer = fopen("./assets/style.css", "r"); //reset the pointer
+    //struct abuf buf_css = ABUF_INIT;
+    //while ((c = getc(file_pointer)) != EOF) {
+    //    abAppend(&buf_css, &c);
+    //}
+    //fclose(file_pointer);
 
     struct abuf ab = ABUF_INIT;
     abAppend(&ab, "HTTP/1.1 200 OK\r\n");
@@ -97,7 +108,7 @@ int main(int argc, char* argv[])
     abAppend(&ab, "document.getElementsByTagName('head')[0].appendChild(link);})();</script>");
 
     abAppend(&ab, "<style>\n.markdown-body { min-width: 200px; max-width: 950px; margin: 0 auto; padding: 30px;}\n");
-    abAppend(&ab, buf_css.b);
+    //abAppend(&ab, style);
     abAppend(&ab, "</style>\n");
     abAppend(&ab, "</head>");
 
@@ -108,7 +119,7 @@ int main(int argc, char* argv[])
 
     run_server(&ab);
     abFree(&ab);
-    abFree(&buf_css);
+    //abFree(&buf_css);
 
     return (EXIT_SUCCESS);
 END:

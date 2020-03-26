@@ -1,3 +1,12 @@
+add_executable(embedfile util/embedfile.c)
+add_custom_command(
+    OUTPUT "${CMAKE_SOURCE_DIR}/core/style.c"
+    COMMAND embedfile style ../assets/style.css
+    DEPENDS ../assets/style.css
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+message(${CMAKE_CURRENT_SOURCE_DIR})
+message(${CMAKE_SOURCE_DIR})
 add_library(
     util
     util/util.c
