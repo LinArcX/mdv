@@ -1,49 +1,90 @@
 #include <err.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/inotify.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#include <extern.h>
+#define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
+#define LEN_NAME 1024 /*Assuming length of the filename won't exceed 16 bytes*/
+#define EVENT_SIZE (sizeof(struct inotify_event)) /*size of one event*/
+#define BUF_LEN (MAX_EVENTS * (EVENT_SIZE + LEN_NAME)) /*buffer to store the data of events*/
 
-#include <server.h>
-#include <util.h>
+void get_event(int fd)
+{
+    char buffer[BUF_LEN];
+    int length, i = 0;
 
-#define DEF_IUNIT 1024
-#define DEF_OUNIT 64
-#define DEF_MAX_NESTING 16
+    length = read(fd, buffer, BUF_LEN);
+    if (length < 0) {
+        perror("read");
+    }
 
-const char style[];
-const size_t style_len;
+    while (i < length) {
+        struct inotify_event* event = (struct inotify_event*)&buffer[i];
+        if (event->len) {
+            if (event->mask & IN_MODIFY) {
+                if (event->mask & IN_ISDIR) {
+                    printf("The directory %s was modified.\n", event->name);
+                } else {
+                    printf("The file %s was modified with WD %d\n", event->name, event->wd);
+                }
+            }
+            i += EVENT_SIZE + event->len;
+        }
+    }
+}
 
-struct opts {
-    size_t iunit;
-    size_t ounit;
-    int toc_level;
-    hoedown_html_flags html_flags;
-    hoedown_extensions extensions;
-    size_t max_nesting;
-};
+int monitor(char* path)
+{
+    int wd, fd;
+
+    fd = inotify_init();
+    if (fd < 0) {
+        perror("Couldn't initialize inotify");
+    }
+
+    wd = inotify_add_watch(fd, path, IN_MODIFY);
+    if (wd == -1) {
+        printf("Couldn't add watch to %s\n", path);
+    } else {
+        printf("Watching:: %s\n", path);
+    }
+
+    /* do it forever*/
+    while (1) {
+        get_event(fd);
+    }
+
+    /* Clean up*/
+    inotify_rm_watch(fd, wd);
+    close(fd);
+    return 0;
+}
+
+char* remove_end(char* str, char c)
+{
+    char* last_pos = strrchr(str, c);
+
+    if (last_pos != NULL) {
+        *last_pos = '\0';
+        return last_pos + 1; /* pointer to the removed part of the string */
+    }
+
+    return NULL; /* c wasn't found in the string */
+}
 
 int main(int argc, char* argv[])
 {
-    struct opts data;
-    FILE* file = stdin;
-    const char* fname = "<stdin>";
-    hoedown_buffer *ib, *ob;
-    hoedown_renderer* renderer = NULL;
-    hoedown_document* document;
-
-    memset(&data, 0, sizeof(struct opts));
-
-    data.iunit = DEF_IUNIT;
-    data.ounit = DEF_OUNIT;
-    data.max_nesting = DEF_MAX_NESTING;
-    data.html_flags = HOEDOWN_HTML_USE_XHTML;
-
     if (-1 != getopt(argc, argv, ""))
         goto END;
+
+    const char* fname = "<stdin>";
+    FILE* file = stdin;
+    char* file_name;
 
     argc -= optind;
     argv += optind;
@@ -57,53 +98,32 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    ib = hoedown_buffer_new(data.iunit);
-
-    if (hoedown_buffer_putf(ib, file))
-        err(EXIT_FAILURE, "%s", fname);
-
-    if (file != stdin)
-        fclose(file);
-
-    renderer = hoedown_html_renderer_new(data.html_flags, data.toc_level);
-
-    ob = hoedown_buffer_new(data.ounit);
-    document = hoedown_document_new(renderer, data.extensions, data.max_nesting);
-    hoedown_document_render(document, ob, ib->data, ib->size);
-
-    hoedown_buffer_free(ib);
-    hoedown_document_free(document);
-    hoedown_html_renderer_free(renderer);
-
-    struct abuf ab = ABUF_INIT;
-    abAppend(&ab, "HTTP/1.1 200 OK\r\n");
-    abAppend(&ab, "Content-Type: text/html; charset=UTF-8\r\n\r\n");
-
-    abAppend(&ab, "<!DOCTYPE html><html><head>");
-    abAppend(&ab, "<meta charset=\"utf-8\">");
-    abAppend(&ab, "<title>");
-    abAppend(&ab, argv[0]);
-    abAppend(&ab, " - mdv");
-    abAppend(&ab, "</title>");
-
-    abAppend(&ab, "<script>(function() {var link = document.querySelector(\"link[rel*='icon']\") || document.createElement('link');");
-    abAppend(&ab, "link.type = 'image/x-icon'; link.rel = 'shortcut icon'; link.href = '../assets/favicon.ico';");
-    abAppend(&ab, "document.getElementsByTagName('head')[0].appendChild(link);})();</script>");
-
-    abAppend(&ab, "<style>\n.markdown-body { min-width: 200px; max-width: 950px; margin: 0 auto; padding: 30px;}\n");
-    abAppend(&ab, style);
-    abAppend(&ab, "</style>\n");
-    abAppend(&ab, "</head>");
-
-    abAppend(&ab, "<body>\n<article class=\"markdown-body\">\n");
-    abAppend(&ab, ob->data);
-    abAppend(&ab, "</article></body></html>\r\n");
-    hoedown_buffer_free(ob);
-
-    run_server(&ab);
-    abFree(&ab);
+    char* path = realpath(fname, NULL);
+    if (path == NULL) {
+        printf("cannot find file with name[%s]\n", fname);
+    } else {
+        run_server();
+        file_name = remove_end(path, '/');
+        monitor(path);
+        free(path);
+    }
 
     return (EXIT_SUCCESS);
 END:
     return (EXIT_FAILURE);
 }
+
+//struct abuf full_path = ABUF_INIT;
+
+//// Extract the first token
+//char* token = strtok(path, "/");
+//abAppend(&full_path, token);
+
+//// loop through the string to extract all other tokens
+//while (token != NULL) {
+//    token = strtok(NULL, " ");
+//    //abAppend(&full_path, token);
+//}
+////abFree(&full_path);
+
+////printf(" %s\n", full_path.b); //prin.ting each token

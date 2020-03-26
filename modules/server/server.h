@@ -4,4 +4,6 @@
 #include <util.h>
 
 void run_server(struct abuf* ab);
+void update_html(struct abuf* ab);
+void create_html_page();
 #endif
