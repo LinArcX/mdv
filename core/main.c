@@ -18,8 +18,8 @@
 //extern "C" {
 //#endif
 ///* Standard C prototypes */
-//const char style[];
-//const size_t style_len;
+const char style[];
+const size_t style_len;
 //
 //#ifdef __cplusplus
 //}
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
     abAppend(&ab, "document.getElementsByTagName('head')[0].appendChild(link);})();</script>");
 
     abAppend(&ab, "<style>\n.markdown-body { min-width: 200px; max-width: 950px; margin: 0 auto; padding: 30px;}\n");
-    //abAppend(&ab, style);
+    abAppend(&ab, style);
     abAppend(&ab, "</style>\n");
     abAppend(&ab, "</head>");
 
