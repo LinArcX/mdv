@@ -2,6 +2,13 @@
 "Switch between .cpp/.hpp files
 nnoremap <F2> :FSHere<CR>
 
+function! FormatCurrentFile()
+    "silent execute "!uncrustify -c ./uncrustify.cfg" . " " . expand('%:p') . " " . "--replace --no-backup"
+    silent execute "!clang-format -i ". " " . expand('%:p')
+    :e
+endfunction
+au BufEnter,BufWrite *.c call FormatCurrentFile()
+
 "------------- vim-quickui settings  ------------------"
 let s:cd_top = "cd ..;"
 let s:update = "update | w |"

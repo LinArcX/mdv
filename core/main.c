@@ -1,3 +1,6 @@
+// Man pages: http://man7.org/linux/man-pages
+// Posix: https://pubs.opengroup.org/onlinepubs/9699919799/functions/
+
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -69,7 +72,7 @@ int monitor(char* path)
     return 0;
 }
 
-char* remove_end(char* str, char c)
+char* remove_last_character(char* str, char c)
 {
     char* last_pos = strrchr(str, c);
 
@@ -83,14 +86,10 @@ char* remove_end(char* str, char c)
 
 int main(int argc, char* argv[])
 {
+
+    // You should pass a file address to read by mdv.
     if (-1 != getopt(argc, argv, ""))
         goto END;
-
-    //fname = "<stdin>";
-    //file = stdin;
-
-    argc -= optind;
-    argv += optind;
 
     if (argc > 0) {
         fname = argv[0];
@@ -101,12 +100,11 @@ int main(int argc, char* argv[])
 
     char* path = realpath(fname, NULL);
     if (path == NULL) {
-        printf("cannot find file with name[%s]\n", fname);
+        printf("Cannot find file: %s\n", fname);
     } else {
         run_server();
         //update_html();
-
-        file_name = remove_end(path, '/');
+        file_name = remove_last_character(path, '/');
         monitor(path);
         free(path);
     }
@@ -114,18 +112,3 @@ int main(int argc, char* argv[])
 END:
     return (EXIT_FAILURE);
 }
-
-//struct abuf full_path = ABUF_INIT;
-
-//// Extract the first token
-//char* token = strtok(path, "/");
-//abAppend(&full_path, token);
-
-//// loop through the string to extract all other tokens
-//while (token != NULL) {
-//    token = strtok(NULL, " ");
-//    //abAppend(&full_path, token);
-//}
-////abFree(&full_path);
-
-////printf(" %s\n", full_path.b); //prin.ting each token
