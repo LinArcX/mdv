@@ -2,6 +2,10 @@
 #define EXTERN_H
 
 #include <stdint.h>
+#include <stdio.h>
+
+char* file_name;
+const char* fname;
 
 /*********
  * TYPES *

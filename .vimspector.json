@@ -22,6 +22,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${workspaceRoot}/debug/${NAME}",
+                "args": ["README.md"],
                 "cwd": "${workspaceRoot}",
                 "externalConsole": true,
                 "stopAtEntry": true,

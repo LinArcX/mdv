@@ -1,14 +1,5 @@
-/.clangd/*
-
 /build/*
 /debug/*
 /garbage/*
 /release/*
-
-/test/build/*
-
-./core/style.c
-/core/style.c
-
 CMakeLists.txt.user
-compile_commands.json

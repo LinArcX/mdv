@@ -8,6 +8,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <extern.h>
+#include <server.h>
+
 #define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
 #define LEN_NAME 1024 /*Assuming length of the filename won't exceed 16 bytes*/
 #define EVENT_SIZE (sizeof(struct inotify_event)) /*size of one event*/
@@ -31,6 +34,7 @@ void get_event(int fd)
                     printf("The directory %s was modified.\n", event->name);
                 } else {
                     printf("The file %s was modified with WD %d\n", event->name, event->wd);
+                    //update_html();
                 }
             }
             i += EVENT_SIZE + event->len;
@@ -51,7 +55,7 @@ int monitor(char* path)
     if (wd == -1) {
         printf("Couldn't add watch to %s\n", path);
     } else {
-        printf("Watching:: %s\n", path);
+        //printf("Watching:: %s\n", path);
     }
 
     /* do it forever*/
@@ -82,17 +86,14 @@ int main(int argc, char* argv[])
     if (-1 != getopt(argc, argv, ""))
         goto END;
 
-    const char* fname = "<stdin>";
-    FILE* file = stdin;
-    char* file_name;
+    //fname = "<stdin>";
+    //file = stdin;
 
     argc -= optind;
     argv += optind;
 
     if (argc > 0) {
         fname = argv[0];
-        if (NULL == (file = fopen(fname, "r")))
-            err(EXIT_FAILURE, "%s", fname);
     } else {
         fprintf(stdout, "Please pass your markdown file as first argument: mdv <foo.md>");
         exit(1);
@@ -103,11 +104,12 @@ int main(int argc, char* argv[])
         printf("cannot find file with name[%s]\n", fname);
     } else {
         run_server();
+        //update_html();
+
         file_name = remove_end(path, '/');
         monitor(path);
         free(path);
     }
-
     return (EXIT_SUCCESS);
 END:
     return (EXIT_FAILURE);
